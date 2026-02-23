@@ -1,0 +1,734 @@
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interliga Soft | Engenharia de Conexões</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --bg-dark: #000000;
+            --accent: #ffffff; /* Ajustado para branco puro */
+        }
+
+        /* Ocultar cursor nativo apenas em ecrãs grandes (desktop) */
+        @media (min-width: 768px) {
+            * {
+                cursor: none !important;
+            }
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, .font-tech {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+        }
+
+        /* Textura de Ruído Estilo Redo Media */
+        .noise {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.04;
+            z-index: 9999;
+            pointer-events: none;
+            animation: noise-move 0.2s infinite;
+        }
+
+        @keyframes noise-move {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-1%,-1%); }
+            20% { transform: translate(-2%,1%); }
+            30% { transform: translate(1%,-2%); }
+            40% { transform: translate(-1%,2%); }
+            50% { transform: translate(-2%,-1%); }
+            60% { transform: translate(1%,1%); }
+            100% { transform: translate(0,0); }
+        }
+
+        /* Cursores Customizados - Ocultos em mobile via CSS */
+        #custom-cursor {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            mix-blend-mode: difference;
+        }
+
+        #cursor-follower {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.15s ease-out, width 0.3s, height 0.3s, border-color 0.3s;
+        }
+
+        @media (max-width: 767px) {
+            #custom-cursor, #cursor-follower {
+                display: none !important;
+            }
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+            opacity: 0.85; 
+        }
+
+        .hero-title {
+            line-height: 0.85;
+            letter-spacing: -0.04em;
+            text-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+        }
+
+        .text-reveal {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+        }
+
+        .glass-card {
+            background: rgba(10, 10, 10, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .glass-card:hover {
+            background: rgba(20, 20, 20, 0.6);
+            border-color: rgba(0, 210, 255, 0.4); /* Hover ciano */
+        }
+
+        .magnetic-wrap {
+            display: inline-block;
+            padding: 10px;
+            margin: -10px;
+        }
+        @media (min-width: 768px) {
+            .magnetic-wrap {
+                padding: 20px;
+                margin: -20px;
+            }
+        }
+
+        .btn-redo {
+            padding: 16px 32px;
+            border-radius: 100px;
+            background: white;
+            color: black;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s, color 0.3s;
+        }
+        @media (min-width: 768px) {
+            .btn-redo {
+                padding: 18px 40px;
+            }
+        }
+
+        .nav-link {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            opacity: 0.6;
+            transition: opacity 0.3s, letter-spacing 0.3s;
+        }
+
+        .nav-link:hover {
+            opacity: 1;
+            letter-spacing: 0.35em;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loader-text {
+            font-size: 8vw;
+            font-weight: 900;
+            color: white;
+            letter-spacing: -0.05em;
+        }
+        @media (min-width: 768px) {
+            .loader-text {
+                font-size: 4vw;
+            }
+        }
+
+        /* Formulário de Contacto */
+        .contact-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 100%;
+            padding: 16px 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s;
+            margin-bottom: 16px;
+        }
+        .contact-input:focus {
+            border-color: var(--primary);
+        }
+        textarea.contact-input {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .method-number {
+            font-size: 3rem;
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255,255,255,0.15);
+            position: absolute;
+            top: -10px;
+            right: 15px;
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+        @media (min-width: 768px) {
+            .method-number {
+                font-size: 4rem;
+                top: -20px;
+                right: 20px;
+            }
+        }
+        .glass-card:hover .method-number {
+            -webkit-text-stroke: 1px rgba(0, 210, 255, 0.5); /* Hover ciano */
+            transform: translateY(-10px);
+        }
+
+        /* Mobile Menu Transitions */
+        #mobile-menu {
+            transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        #mobile-menu.open {
+            max-height: 300px;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Intro Loader -->
+    <div id="loader">
+        <div class="loader-text font-tech text-center">
+            INTERLIGA <span id="load-count" class="opacity-30 block md:inline mt-2 md:mt-0">0</span>
+        </div>
+    </div>
+
+    <div class="noise"></div>
+    <div id="custom-cursor"></div>
+    <div id="cursor-follower"></div>
+
+    <!-- Container do WebGL -->
+    <div id="canvas-container"></div>
+
+    <!-- Navegação Responsiva -->
+    <nav class="fixed w-full z-50 top-0 bg-black/50 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-white/10 md:border-none">
+        <div class="px-6 md:px-12 py-6 md:py-10 flex justify-between items-center relative z-20">
+            <div class="flex items-center space-x-2">
+                <span class="text-lg md:text-xl font-bold font-tech tracking-tighter text-white">INTERLIGA SOFT.</span>
+            </div>
+            
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-12">
+                <a href="#servicos" class="nav-link">Arquitetura</a>
+                <a href="#metodologia" class="nav-link">Metodologia</a>
+                <a href="#contacto" class="nav-link text-cyan-400">Contacto</a>
+            </div>
+            
+            <div class="hidden lg:block">
+                <span class="text-[9px] font-bold opacity-30 uppercase tracking-[0.4em]">Status: Online</span>
+            </div>
+
+            <!-- Hamburger Button (Mobile) -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-btn" class="text-white focus:outline-none p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="absolute top-full left-0 w-full bg-black/95 backdrop-blur-lg border-b border-white/10 flex flex-col items-center py-4 space-y-6 md:hidden">
+            <a href="#servicos" class="nav-link mobile-link !text-sm">Arquitetura</a>
+            <a href="#metodologia" class="nav-link mobile-link !text-sm">Metodologia</a>
+            <a href="#contacto" class="nav-link mobile-link !text-sm text-cyan-400">Contacto</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center px-6 md:px-24 pt-28 md:pt-20">
+        <div class="max-w-6xl z-10 w-full">
+            <div class="text-reveal">
+                <h1 class="hero-title text-5xl sm:text-7xl md:text-[9.5vw] font-bold mb-8 md:mb-10 stagger-item">
+                    CONNECTING.<br>
+                    EVOLVING.<br>
+                    <span class="text-white/10 italic text-4xl sm:text-6xl md:text-[8vw] block mt-2 md:mt-0">INTERLIGATING.</span>
+                </h1>
+            </div>
+            <p class="text-gray-300 text-base md:text-xl max-w-xl mb-10 md:mb-12 stagger-item opacity-0 leading-relaxed drop-shadow-lg" style="text-shadow: 0 2px 10px rgba(0,0,0,1);">
+                Engenharia de software de alta densidade aplicada à Gestão Pública e Empresarial. Criamos elos digitais onde a tecnologia encontra a eficiência.
+            </p>
+            <div class="magnetic-wrap stagger-item opacity-0">
+                <button class="btn-redo hover:bg-cyan-500 hover:text-black transition-colors duration-300 w-full md:w-auto" onclick="document.getElementById('contacto').scrollIntoView({behavior: 'smooth'})">Iniciar Projeto</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Expertise -->
+    <section id="servicos" class="py-24 md:py-40 px-6 md:px-24 relative z-10 border-t border-white/5 bg-transparent">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16">
+            <div class="md:col-span-5 text-center md:text-left">
+                <span class="text-[10px] font-bold text-white mb-4 block tracking-[0.5em] uppercase" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">Core Business</span>
+                <h2 class="text-4xl md:text-7xl font-bold font-tech leading-[0.9] scroll-reveal" style="text-shadow: 0 0 20px rgba(0,0,0,0.8);">A MENTE <br class="hidden md:block"> POR TRÁS <br class="hidden md:block"> DA REDE.</h2>
+            </div>
+            <div class="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="glass-card p-8 md:p-12 rounded-sm scroll-reveal">
+                    <div class="w-10 h-10 border border-white/10 flex items-center justify-center mb-6 md:mb-8 text-xs font-bold text-cyan-400">01</div>
+                    <h3 class="text-xl font-bold mb-4 md:mb-6 tracking-tight">Arquitetura Pública</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Sistemas de governança digital e transparência. Do backend governamental à interface do cidadão.</p>
+                </div>
+                <div class="glass-card p-8 md:p-12 rounded-sm scroll-reveal">
+                    <div class="w-10 h-10 border border-white/10 flex items-center justify-center mb-6 md:mb-8 text-xs font-bold text-white">02</div>
+                    <h3 class="text-xl font-bold mb-4 md:mb-6 tracking-tight">Sistemas de Gestão</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Criação e manutenção evolutiva de ERPs e ecossistemas empresariais de missão crítica.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Metodologia -->
+    <section id="metodologia" class="py-24 md:py-32 px-6 md:px-24 relative z-10 border-t border-white/5 bg-black/40 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-16 md:mb-20 text-center">
+                <span class="text-[10px] font-bold text-white mb-4 block tracking-[0.5em] uppercase">Workflow</span>
+                <h2 class="text-4xl md:text-6xl font-bold font-tech leading-[0.9] scroll-reveal">COMO CONSTRUÍMOS.</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass-card p-6 md:p-8 rounded-sm relative overflow-hidden scroll-reveal" style="transition-delay: 0.1s;">
+                    <div class="method-number">01</div>
+                    <h3 class="text-lg font-bold mb-3 md:mb-4">Análise</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Mapeamento rigoroso de requisitos e identificação de gargalos operacionais no legado.</p>
+                </div>
+                <div class="glass-card p-6 md:p-8 rounded-sm relative overflow-hidden scroll-reveal" style="transition-delay: 0.2s;">
+                    <div class="method-number">02</div>
+                    <h3 class="text-lg font-bold mb-3 md:mb-4">Arquitetura</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Desenho de soluções escaláveis utilizando microsserviços e infraestrutura cloud-native.</p>
+                </div>
+                <div class="glass-card p-6 md:p-8 rounded-sm relative overflow-hidden scroll-reveal" style="transition-delay: 0.3s;">
+                    <div class="method-number">03</div>
+                    <h3 class="text-lg font-bold mb-3 md:mb-4">Engenharia</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Desenvolvimento ágil com código limpo, testes automatizados e integração contínua.</p>
+                </div>
+                <div class="glass-card p-6 md:p-8 rounded-sm relative overflow-hidden scroll-reveal" style="transition-delay: 0.4s;">
+                    <div class="method-number">04</div>
+                    <h3 class="text-lg font-bold mb-3 md:mb-4">Sustentação</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Monitorização 24/7, atualizações de segurança e evolução contínua do ecossistema.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacto -->
+    <section id="contacto" class="py-24 md:py-32 px-6 md:px-24 relative z-10 border-t border-white/5 bg-black/70 backdrop-blur-lg">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-10 md:mb-12 text-center md:text-left">
+                <span class="text-[10px] font-bold text-cyan-500 mb-4 block tracking-[0.5em] uppercase">Engenharia Sob Medida</span>
+                <h2 class="text-4xl md:text-5xl font-bold font-tech leading-[0.9] scroll-reveal">VAMOS CONVERSAR.</h2>
+                <p class="text-gray-300 text-sm mt-4 md:mt-6 max-w-2xl scroll-reveal mx-auto md:mx-0">Descreva o seu projeto ou o desafio do seu sistema atual. A nossa equipa entrará em contacto para agendar uma reunião técnica.</p>
+            </div>
+            
+            <div class="glass-card p-6 md:p-8 rounded-sm scroll-reveal border border-white/20">
+                <input type="text" class="contact-input" placeholder="Nome / Organização">
+                <input type="email" class="contact-input" placeholder="Email corporativo">
+                <textarea rows="4" class="contact-input mb-4 md:mb-6" placeholder="Detalhes do projeto ou sistema legado..."></textarea>
+                <div class="magnetic-wrap inline-block w-full md:w-auto text-center md:text-left">
+                    <button class="btn-redo !bg-cyan-500 !text-black hover:!bg-white w-full md:w-auto">Enviar Mensagem</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 md:py-16 px-6 md:px-12 flex flex-col md:flex-row justify-between items-center border-t border-white/5 bg-black text-center md:text-left">
+        <div class="mb-8 md:mb-0">
+            <div class="text-[10px] font-bold tracking-[0.6em] mb-2 opacity-40">INTERLIGA SOFT / 2026</div>
+            <div class="text-[9px] text-gray-700 tracking-[0.2em] uppercase">Tecnologia que conecta propósitos.</div>
+        </div>
+        <div class="flex flex-wrap justify-center space-x-6 md:space-x-8 text-[10px] font-bold tracking-widest uppercase opacity-30 mt-4 md:mt-0">
+            <a href="#" class="hover:opacity-100 transition">LinkedIn</a>
+            <a href="#" class="hover:opacity-100 transition">GitHub</a>
+            <a href="#" class="hover:opacity-100 transition">Privacy</a>
+        </div>
+    </footer>
+
+    <script>
+        // --- MOBILE MENU LOGIC ---
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('open');
+        });
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+            });
+        });
+
+        // --- CUSTOM CURSOR LOGIC ---
+        const cursor = document.getElementById('custom-cursor');
+        const follower = document.getElementById('cursor-follower');
+        let cursorX = 0, cursorY = 0;
+        
+        // Só ativa a lógica do cursor em dispositivos não-táteis / ecrãs grandes
+        if (window.matchMedia("(min-width: 768px)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                cursorX = e.clientX;
+                cursorY = e.clientY;
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+                
+                gsap.to(follower, {
+                    x: cursorX - 20,
+                    y: cursorY - 20,
+                    duration: 0.5,
+                    ease: "power3.out"
+                });
+
+                if (e.target.closest('button') || e.target.closest('a')) {
+                    follower.style.transform += ' scale(1.5)';
+                    follower.style.borderColor = 'rgba(0, 210, 255, 0.8)';
+                    cursor.style.transform = 'scale(0)';
+                } else if (e.target.tagName.toLowerCase() === 'textarea' || e.target.tagName.toLowerCase() === 'input') {
+                    follower.style.transform += ' scale(0.5)';
+                    follower.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                    cursor.style.transform = 'scale(0.5)';
+                } else {
+                    cursor.style.transform = 'scale(1)';
+                    follower.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }
+            });
+        }
+
+        // --- MAGNETIC BUTTONS ---
+        if (window.matchMedia("(min-width: 768px)").matches) {
+            document.querySelectorAll('.magnetic-wrap').forEach(el => {
+                el.addEventListener('mousemove', (e) => {
+                    const rect = el.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    gsap.to(el.querySelector('.btn-redo'), {
+                        x: x * 0.4,
+                        y: y * 0.4,
+                        duration: 0.6,
+                        ease: "power2.out"
+                    });
+                });
+                el.addEventListener('mouseleave', () => {
+                    gsap.to(el.querySelector('.btn-redo'), {
+                        x: 0,
+                        y: 0,
+                        duration: 0.6,
+                        ease: "elastic.out(1, 0.3)"
+                    });
+                });
+            });
+        }
+
+        // --- GSAP REVEALS ---
+        gsap.registerPlugin(ScrollTrigger);
+
+        function runIntro() {
+            let count = { value: 0 };
+            gsap.to(count, {
+                value: 100,
+                duration: 1.5,
+                ease: "power4.inOut",
+                onUpdate: () => {
+                    document.getElementById('load-count').innerText = Math.round(count.value).toString().padStart(3, '0');
+                },
+                onComplete: () => {
+                    gsap.to('#loader', { 
+                        yPercent: -100, 
+                        duration: 1.2, 
+                        ease: "expo.inOut", 
+                        onComplete: () => {
+                            document.getElementById('loader').remove();
+                            startPageAnimations();
+                        }
+                    });
+                }
+            });
+        }
+
+        function startPageAnimations() {
+            gsap.to('.stagger-item', {
+                y: 0,
+                opacity: 1,
+                duration: 1.8,
+                stagger: 0.15,
+                ease: "expo.out"
+            });
+
+            document.querySelectorAll('.scroll-reveal').forEach(el => {
+                gsap.from(el, {
+                    scrollTrigger: {
+                        trigger: el,
+                        start: "top 85%",
+                    },
+                    y: 60,
+                    opacity: 0,
+                    duration: 1.5,
+                    ease: "power4.out"
+                });
+            });
+        }
+
+        // =========================================================================
+        // --- THREE.JS: REDE NEURAL (PLEXUS NETWORK AZUL E BRANCA) ---
+        // =========================================================================
+        let scene, camera, renderer, pointCloud, linesMesh;
+        let particlesData = [];
+        let particlePositions;
+        
+        // Reduzir contagem de partículas em mobile para melhor performance
+        const isMobile = window.innerWidth < 768;
+        const particleCount = isMobile ? 150 : 350;
+        const maxDistance = isMobile ? 120 : 150;
+        
+        let group;
+        let mouseX = 0, mouseY = 0;
+
+        // Textura de brilho suave para as partículas
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 4000);
+            camera.position.z = 800;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Limitar o Pixel Ratio em mobile para poupar bateria e manter os FPS altos
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.5));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            group = new THREE.Group();
+            scene.add(group);
+
+            const segments = particleCount * particleCount;
+            const positions = new Float32Array(segments * 3);
+            const colors = new Float32Array(segments * 3);
+
+            // Nódulos em Ciano
+            const pMaterial = new THREE.PointsMaterial({
+                color: 0x00d2ff, 
+                size: isMobile ? 6 : 8, 
+                map: createGlowTexture(),
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                depthWrite: false, 
+                sizeAttenuation: true
+            });
+
+            particlePositions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                const x = (Math.random() - 0.5) * 1200;
+                const y = (Math.random() - 0.5) * 1200;
+                const z = (Math.random() - 0.5) * 1200;
+
+                particlePositions[i * 3] = x;
+                particlePositions[i * 3 + 1] = y;
+                particlePositions[i * 3 + 2] = z;
+
+                particlesData.push({
+                    velocity: new THREE.Vector3(-1 + Math.random() * 2, -1 + Math.random() * 2, -1 + Math.random() * 2).normalize().multiplyScalar(0.5 + Math.random() * 1.5),
+                    numConnections: 0
+                });
+            }
+
+            const particleGeometry = new THREE.BufferGeometry();
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3).setUsage(THREE.DynamicDrawUsage));
+            
+            pointCloud = new THREE.Points(particleGeometry, pMaterial);
+            group.add(pointCloud);
+
+            const lineGeometry = new THREE.BufferGeometry();
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
+            lineGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
+            lineGeometry.computeBoundingSphere();
+            lineGeometry.setDrawRange(0, 0);
+
+            const lineMaterial = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            linesMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
+            group.add(linesMesh);
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            let vertexpos = 0;
+            let colorpos = 0;
+            let numConnected = 0;
+
+            for (let i = 0; i < particleCount; i++) particlesData[i].numConnections = 0;
+
+            for (let i = 0; i < particleCount; i++) {
+                const pData = particlesData[i];
+
+                particlePositions[i * 3] += pData.velocity.x;
+                particlePositions[i * 3 + 1] += pData.velocity.y;
+                particlePositions[i * 3 + 2] += pData.velocity.z;
+
+                const bounds = 600;
+                if (particlePositions[i * 3] < -bounds || particlePositions[i * 3] > bounds) pData.velocity.x = -pData.velocity.x;
+                if (particlePositions[i * 3 + 1] < -bounds || particlePositions[i * 3 + 1] > bounds) pData.velocity.y = -pData.velocity.y;
+                if (particlePositions[i * 3 + 2] < -bounds || particlePositions[i * 3 + 2] > bounds) pData.velocity.z = -pData.velocity.z;
+
+                for (let j = i + 1; j < particleCount; j++) {
+                    const dx = particlePositions[i * 3] - particlePositions[j * 3];
+                    const dy = particlePositions[i * 3 + 1] - particlePositions[j * 3 + 1];
+                    const dz = particlePositions[i * 3 + 2] - particlePositions[j * 3 + 2];
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (dist < maxDistance) {
+                        const alpha = 1.0 - dist / maxDistance;
+
+                        linesMesh.geometry.attributes.position.array[vertexpos++] = particlePositions[i * 3];
+                        linesMesh.geometry.attributes.position.array[vertexpos++] = particlePositions[i * 3 + 1];
+                        linesMesh.geometry.attributes.position.array[vertexpos++] = particlePositions[i * 3 + 2];
+
+                        linesMesh.geometry.attributes.position.array[vertexpos++] = particlePositions[j * 3];
+                        linesMesh.geometry.attributes.position.array[vertexpos++] = particlePositions[j * 3 + 1];
+                        linesMesh.geometry.attributes.position.array[vertexpos++] = particlePositions[j * 3 + 2];
+
+                        // Cores das ligações estritamente em tons de azul ciano e branco
+                        const isWhite = (i % 5 === 0);
+                        const r = isWhite ? 0.8 * alpha : 0.0 * alpha;
+                        const g = isWhite ? 0.9 * alpha : 0.82 * alpha;
+                        const b = isWhite ? 1.0 * alpha : 1.0 * alpha;
+
+                        linesMesh.geometry.attributes.color.array[colorpos++] = r;
+                        linesMesh.geometry.attributes.color.array[colorpos++] = g;
+                        linesMesh.geometry.attributes.color.array[colorpos++] = b;
+
+                        linesMesh.geometry.attributes.color.array[colorpos++] = r;
+                        linesMesh.geometry.attributes.color.array[colorpos++] = g;
+                        linesMesh.geometry.attributes.color.array[colorpos++] = b;
+
+                        numConnected++;
+                    }
+                }
+            }
+
+            linesMesh.geometry.setDrawRange(0, numConnected * 2);
+            linesMesh.geometry.attributes.position.needsUpdate = true;
+            linesMesh.geometry.attributes.color.needsUpdate = true;
+            pointCloud.geometry.attributes.position.needsUpdate = true;
+
+            const time = Date.now() * 0.0005;
+            group.rotation.y = time * 0.2;
+            group.rotation.x = time * 0.1;
+
+            if (!isMobile) {
+                camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY * 0.5 - camera.position.y) * 0.05;
+            } else {
+                // Rotação suave constante para mobile sem interação do rato
+                camera.position.x = Math.sin(time) * 100;
+                camera.position.y = Math.cos(time) * 50;
+            }
+            camera.lookAt(scene.position);
+
+            renderer.render(scene, camera);
+        }
+
+        if (!isMobile) {
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX - window.innerWidth / 2);
+                mouseY = (e.clientY - window.innerHeight / 2);
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.addEventListener('load', () => {
+            initThree();
+            runIntro();
+        });
+    </script>
+</body>
+</html>
